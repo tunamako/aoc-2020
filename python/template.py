@@ -26,8 +26,5 @@ if __name__ == '__main__':
     print(part_one(_input))
     print(part_two(_input))
 
-    #submit(part_one(_input), part="a", day=DAY, year=YEAR)
-    #submit(part_two(_input), part="b", day=DAY, year=YEAR)
-
     #cProfile.run('print(part_one(_input))')
     #cProfile.run('print(part_two(_input))')
