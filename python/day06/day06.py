@@ -12,31 +12,20 @@ DAY = 6
 
 
 def get_groups(_input):
-    groups = []
-    curgroup = []
-    for line in _input:
-        if line == '':
-            groups.append(curgroup)
-            curgroup = []
-            continue
-
-        curgroup.append(set(line))
-
-    return groups
+    return [map(set, g.split('\n')) for g in _input]
 
 
 def part_one(_input):
-    return sum(len(set.union(*group)) for group in get_groups(_input))
+    return sum(len(set.union(*g)) for g in get_groups(_input))
 
 
 def part_two(_input):
-    return sum(len(set.intersection(*group)) for group in get_groups(_input))
+    return sum(len(set.intersection(*g)) for g in get_groups(_input))
 
 
 if __name__ == '__main__':
     puzzle = Puzzle(year=YEAR, day=DAY)
-    _input = puzzle.input_data.split('\n')
-    _input.append('')
+    _input = puzzle.input_data.split('\n\n')
     #_input = open('bigboy').readlines()
 
     print(part_one(_input))
