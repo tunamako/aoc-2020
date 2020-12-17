@@ -66,7 +66,7 @@ def match_rules(possible_rules, ticket_len, rules):
 
     while len(matched_columns) < ticket_len:
         for i in range(ticket_len):
-            if i in matched_columns or len(possible_rules[i]) == 0:
+            if i in matched_columns:
                 continue
 
             if len(possible_rules[i]) == 1:
@@ -75,6 +75,7 @@ def match_rules(possible_rules, ticket_len, rules):
                 for j in range(ticket_len):
                     if matched_columns[i] in possible_rules[j]:
                         possible_rules[j].remove(matched_columns[i])
+
 
     return matched_columns
 
@@ -105,8 +106,8 @@ if __name__ == '__main__':
     _input = puzzle.input_data.split('\n\n')
     #_input = open('input').read().split('\n\n')
 
-    print(part_one(_input))
-    print(part_two(_input))
+    #print(part_one(_input))
+    #print(part_two(_input))
 
     #cProfile.run('print(part_one(_input))')
-    #cProfile.run('print(part_two(_input))')
+    cProfile.run('print(part_two(_input))')
