@@ -12,41 +12,18 @@ YEAR = 2020
 DAY = 20
 
 
-def part_one(_input):
-    tiles = dict()
-
-    for tile in _input:
-        tile = tile.split('\n')
-        _id = tile[0].split(' ')[1][:-1]
-
-        edges = {tile[1], tile[-1]}
-        left = []
-        right = []
-
-        for row in tile[1:]:
-            left.append(row[0])
-            right.append(row[-1])
-
-        edges.add(''.join(left))
-        edges.add(''.join(right))
-
-        tiles[_id] = edges
-
-    res = 1
-    for _id, edges in tiles.items():
-        matchcount = 0
-        for edge in edges:
-            for i, e in tiles.items():
-                if i == _id:
-                    continue
-                elif edge in e or edge[::-1] in e:
-                    matchcount += 1
-                    break
-
-        if matchcount == 2:
-            res *= int(_id)
-
-    return res
+def get_transforms(array):
+    r = np.rot90
+    return [
+        array,
+        r(array),
+        r(r(array)),
+        r(r(r(array))),
+        np.flipud(array),
+        np.fliplr(array),
+        r(np.flipud(array)),
+        r(np.fliplr(array)),
+    ]
 
 
 class Tile(object):
@@ -57,22 +34,28 @@ class Tile(object):
         self.tile = np.array([list(row) for row in tile[1:]])
         self.neighbors = {"u": None,"d": None,"l": None,"r": None}
 
-        r = np.rot90
-        self.transforms = [
-            self.tile,
-            r(self.tile),
-            r(r(self.tile)),
-            r(r(r(self.tile))),
-            np.flipud(self.tile),
-            np.fliplr(self.tile),
-            r(np.flipud(self.tile)),
-            r(np.fliplr(self.tile)),
-        ]
+        self.edges = {tile[1], tile[-1]}
+        self.edges.add(''.join(self.tile[:,0]))
+        self.edges.add(''.join(self.tile[:,-1]))
+
+        self.transforms = get_transforms(self.tile)
 
     def __repr__(self):
         return self._id
 
     def find_neighbors(self, tiles):
+        # Prefill by finding all four neighbors quickly
+        neighbors = set()
+        for t in tiles:
+            if t is self:
+                continue
+            for e in self.edges:
+                if e in t.edges or e[::-1] in t.edges:
+                    neighbors.add(t)
+                    break
+
+        print(self, neighbors)
+        # Figure out their orientation
         found = []
         for d in self.neighbors:
             if self.neighbors[d]:
@@ -90,12 +73,8 @@ class Tile(object):
         return found
 
     def matches(self, tile, direction):
-        d_slices = {
-            'u': ('d', 0, -1),
-            'd': ('u', -1, 0),
-            'l': ('r', 0, -1),
-            'r': ('l', -1, 0)
-        }
+        d_slices = {'u': ('d', 0, -1),'d': ('u', -1, 0),
+                    'l': ('r', 0, -1),'r': ('l', -1, 0)}
         sl = d_slices[direction]
 
         for i, t in enumerate(tile.transforms):
@@ -119,12 +98,6 @@ class Tile(object):
 
         self.transforms = [self.tile]
 
-    def get_transforms(self):
-        if self.matched:
-            return [self.tile]
-        else:
-            return self.transforms
-
     def remove_borders(self):
         self.tile = self.tile[1:-1,1:-1]
 
@@ -135,24 +108,35 @@ class Tile(object):
         else:
             return self.tile
 
+    def stitch(self):
+        row = self.stitch_right()
+        down = self.neighbors['d']
+        if down:
+            return np.concatenate((row, down.stitch()), axis=0)
+        else:
+            return row
+
+
+def part_one(_input):
+    tiles = [Tile(tile) for tile in _input]
+
+    n = [tiles[0]]
+    while n:
+        n += n.pop().find_neighbors(tiles)
+
+    res = 1
+    for tile in tiles:
+        matchcount = sum([n is None for n in tile.neighbors.values()])
+        if matchcount == 2:
+            res *= int(tile._id)
+
+    return res
+
+
 def has_monster(x, y, grid):
-    relative_coords = [
-        (0, -1),
-        (1, -2),
-        (4, -2),
-        (5, -1),
-        (6, -1),
-        (7, -2),
-        (10, -2),
-        (11, -1),
-        (12, -1),
-        (13, -2),
-        (16, -2),
-        (17, -1),
-        (18, 0),
-        (18, -1),
-        (19, -1),
-    ]
+    relative_coords = [(0, -1),(1, -2),(4, -2),(5, -1),(6, -1),
+                       (7, -2),(10, -2),(11, -1),(12, -1),(13, -2),
+                       (16, -2),(17, -1),(18, 0),(18, -1),(19, -1),]
 
     ret = set()
     for i, j in relative_coords:
@@ -163,6 +147,7 @@ def has_monster(x, y, grid):
 
     return ret
 
+
 def part_two(_input):
     tiles = [Tile(tile) for tile in _input]
 
@@ -171,38 +156,19 @@ def part_two(_input):
         n += n.pop().find_neighbors(tiles)
 
     # find top left corner
-    upper_left = tiles[0]
-    while True:
-        if upper_left.neighbors['u']:
-            upper_left = upper_left.neighbors['u']
-        elif upper_left.neighbors['l']:
-            upper_left = upper_left.neighbors['l']
-        else:
-            break
+    u_l = tiles[0]
+    while u_l.neighbors['u'] or u_l.neighbors['l']:
+        if u_l.neighbors['u']:
+            u_l = u_l.neighbors['u']
+        elif u_l.neighbors['l']:
+            u_l = u_l.neighbors['l']
 
     for tile in tiles:
         tile.remove_borders()
 
     #stich row by row
-    t = upper_left
-    grid = t.stitch_right()
-    t = t.neighbors['d']
-
-    while t:
-        grid = np.concatenate((grid, t.stitch_right()), axis=0)
-        t = t.neighbors['d']
-
-    r = np.rot90
-    grid_transforms = [
-        grid,
-        r(grid),
-        r(r(grid)),
-        r(r(r(grid))),
-        np.flipud(grid),
-        np.fliplr(grid),
-        r(np.flipud(grid)),
-        r(np.fliplr(grid)),
-    ]
+    grid = u_l.stitch()
+    grid_transforms = get_transforms(grid)
 
     #find monster
     sea_monster_coords = set()
@@ -217,10 +183,10 @@ def part_two(_input):
 if __name__ == '__main__':
     puzzle = Puzzle(year=YEAR, day=DAY)
     _input = puzzle.input_data.split('\n\n')
-    #_input = open('input').read().split("\n\n")
+    _input = open('input').read().split("\n\n")
 
     #print(part_one(_input))
-    #print(part_two(_input))
+    print(part_two(_input))
 
     #cProfile.run('print(part_one(_input))')
-    cProfile.run('print(part_two(_input))')
+    #cProfile.run('print(part_two(_input))')
