@@ -7,6 +7,7 @@ import re
 import math
 import numpy as np
 from pprint import *
+import time
 
 YEAR = 2020
 DAY = 20
@@ -35,8 +36,11 @@ class Tile(object):
         self.neighbors = {"u": None,"d": None,"l": None,"r": None}
 
         self.edges = {tile[1], tile[-1]}
+        self.edges |= {tile[1][::-1], tile[-1][::-1]}
         self.edges.add(''.join(self.tile[:,0]))
         self.edges.add(''.join(self.tile[:,-1]))
+        self.edges.add(''.join(self.tile[:,0])[::-1])
+        self.edges.add(''.join(self.tile[:,-1])[::-1])
 
         self.transforms = get_transforms(self.tile)
 
@@ -47,21 +51,18 @@ class Tile(object):
         # Prefill by finding all four neighbors quickly
         neighbors = set()
         for t in tiles:
-            if t is self:
-                continue
             for e in self.edges:
-                if e in t.edges or e[::-1] in t.edges:
+                if e in t.edges:
                     neighbors.add(t)
                     break
 
-        print(self, neighbors)
         # Figure out their orientation
         found = []
         for d in self.neighbors:
             if self.neighbors[d]:
                 continue
 
-            for t in tiles:
+            for t in neighbors:
                 if t is self:
                     continue
                 elif t in self.neighbors.values():
@@ -132,21 +133,16 @@ def part_one(_input):
 
     return res
 
+relative_coords = [(0, -1),(1, -2),(4, -2),(5, -1),(6, -1),
+                   (7, -2),(10, -2),(11, -1),(12, -1),(13, -2),
+                   (16, -2),(17, -1),(18, 0),(18, -1),(19, -1),]
 
 def has_monster(x, y, grid):
-    relative_coords = [(0, -1),(1, -2),(4, -2),(5, -1),(6, -1),
-                       (7, -2),(10, -2),(11, -1),(12, -1),(13, -2),
-                       (16, -2),(17, -1),(18, 0),(18, -1),(19, -1),]
-
-    ret = set()
     for i, j in relative_coords:
         if grid[y+j][x+i] != '#':
-            return set()
-        else:
-            ret.add((x+i, y+j))
+            return False
 
-    return ret
-
+    return True
 
 def part_two(_input):
     tiles = [Tile(tile) for tile in _input]
@@ -171,22 +167,24 @@ def part_two(_input):
     grid_transforms = get_transforms(grid)
 
     #find monster
-    sea_monster_coords = set()
+    sea_monster_count = 0
     for t in grid_transforms:
         for i in range(len(grid) - 18):
             for j in range(len(grid) - 1):
-                sea_monster_coords |= has_monster(i, j, t)
+                if has_monster(i, j, t):
+                    sea_monster_count += 1
 
-    return np.sum(grid == '#') - len(sea_monster_coords)
+        if sea_monster_count:
+            return np.sum(grid == '#') - (sea_monster_count * 15)
 
 
 if __name__ == '__main__':
     puzzle = Puzzle(year=YEAR, day=DAY)
     _input = puzzle.input_data.split('\n\n')
-    _input = open('input').read().split("\n\n")
+    #_input = open('input').read().split("\n\n")
 
     #print(part_one(_input))
-    print(part_two(_input))
+    #print(part_two(_input))
 
     #cProfile.run('print(part_one(_input))')
-    #cProfile.run('print(part_two(_input))')
+    cProfile.run('print(part_two(_input))')
