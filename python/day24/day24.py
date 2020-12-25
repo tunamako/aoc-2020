@@ -81,7 +81,6 @@ def part_two(_input):
         for t in to_flip:
             tiles[t] = not tiles[t]
 
-        print(day, sum(tiles.values()), len(tiles))
     return sum(tiles.values())
 
 if __name__ == '__main__':
